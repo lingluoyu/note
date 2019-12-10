@@ -3,13 +3,13 @@
 * 数据缓存，同时失效
 * 所有数据查询请求落在数据库
 
-![缓存雪崩](https://user-gold-cdn.xitu.io/2019/11/3/16e30d2c5e17899c?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+![缓存雪崩](https://raw.githubusercontent.com/lingluoyu/image/master/img/20191210143147.png)
 
 ### 缓存穿透
 
 * 数据库和缓存中都不存在的数据
 
-![缓存穿透](https://user-gold-cdn.xitu.io/2019/11/3/16e30d1847df0faf?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+![缓存穿透](https://raw.githubusercontent.com/lingluoyu/image/master/img/20191210143331.png)
 
 ### 缓存击穿
 
@@ -25,8 +25,8 @@
 
 * 海量数据查重
 
-![海量数据查重](https://user-gold-cdn.xitu.io/2019/10/28/16e112fbd031fe71?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+![海量数据查重](https://raw.githubusercontent.com/lingluoyu/image/master/img/20191210143246.png)
 
 * 避免缓存穿透
 
-![避免缓存穿透](https://user-gold-cdn.xitu.io/2019/10/30/16e1b6d07e758c4a?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+![避免缓存穿透](https://raw.githubusercontent.com/lingluoyu/image/master/img/20191210143218.png)
