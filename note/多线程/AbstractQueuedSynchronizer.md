@@ -2,6 +2,10 @@
 
 AQS核心思想，若被请求的资源当前为空闲状态，则将当前请求资源的线程设置为有效的工作线程，并将共享资源状态设置为锁定；当前请求的资源被占用时，其他请求资源的线程需要被阻塞，这种阻塞线程以及被唤醒是获取锁的机制通过  CLH 队列实现，暂时获取不到锁（资源）的线程将被加入到此队列中。
 
+AQS原理图
+
+![AQS-1](https://gitee.com/LoopSup/image/raw/master/img/aqs-1.jpg)
+
 ### AQS主要结构
 
 ```java
@@ -150,7 +154,7 @@ static final class FairSync extends Sync {
                 return true;
             }
         }
-          // 会进入这个else if分支，说明是重入了，需要操作：state=state+1
+        // 会进入这个else if分支，说明是重入了，需要操作：state=state+1
         // 这里不存在并发问题
         else if (current == getExclusiveOwnerThread()) {
             int nextc = c + acquires;
@@ -364,7 +368,7 @@ static final class FairSync extends Sync {
    // 仔细看shouldParkAfterFailedAcquire(p, node)，我们可以发现，其实第一次进来的时候，一般都不会返回true的，原因很简单，前驱节点的waitStatus=-1是依赖于后继节点设置的。也就是说，我都还没给前驱设置-1呢，怎么可能是true呢，但是要看到，这个方法是套在循环里的，所以第二次进来的时候状态就是-1了。
 
     // 解释下为什么shouldParkAfterFailedAcquire(p, node)返回false的时候不直接挂起线程：
-    // => 是为了应对在经过这个方法后，node已经是head的直接后继节点了。剩下的读者自己想想吧。
+    // => 是为了应对在经过这个方法后，node已经是head的直接后继节点了。
 }
 ```
 
@@ -446,7 +450,8 @@ private void unparkSuccessor(Node node) {
 公平锁：
 
 ```java
-if (c == 0) {//相比非公平锁多了一个判断：是否有线程在等待
+if (c == 0) {
+    //公平锁相比非公平锁多了一个判断（!hasQueuedPredecessors()）：是否有线程在等待
     if (!hasQueuedPredecessors() &&
         compareAndSetState(0, acquires)) {
         setExclusiveOwnerThread(current);
@@ -488,13 +493,14 @@ else if (current == getExclusiveOwnerThread()) {
 
 ### JUC中AQS相关应用
 
-| 同步工具               | 同步工具与AQS的关联                                          |
-| :--------------------- | :----------------------------------------------------------- |
-| ReentrantLock          | 使用AQS保存锁重复持有的次数。当一个线程获取锁时，ReentrantLock记录当前获得锁的线程标识，用于检测是否重复获取，以及错误线程试图解锁操作时异常情况的处理。 |
-| Semaphore              | 使用AQS同步状态来保存信号量的当前计数。tryRelease会增加计数，acquireShared会减少计数。 |
-| CountDownLatch         | 使用AQS同步状态来表示计数。计数为0时，所有的Acquire操作（CountDownLatch的await方法）才可以通过。 |
-| ReentrantReadWriteLock | 使用AQS同步状态中的16位保存写锁持有的次数，剩下的16位用于保存读锁的持有次数。 |
-| ThreadPoolExecutor     | Worker利用AQS同步状态实现对独占线程变量的设置（tryAcquire和tryRelease）。 |
+| 同步工具                   | 同步工具与AQS的关联                                          |
+| :------------------------- | :----------------------------------------------------------- |
+| ReentrantLock              | 使用AQS保存锁重复持有的次数。当一个线程获取锁时，ReentrantLock记录当前获得锁的线程标识，用于检测是否重复获取，以及错误线程试图解锁操作时异常情况的处理。 |
+| Semaphore（信号量）        | 使用AQS同步状态来保存信号量的当前计数。tryRelease会增加计数，acquireShared会减少计数。 |
+| CountDownLatch（倒计时器） | 使用AQS同步状态来表示计数。计数为0时，所有的Acquire操作（CountDownLatch的await方法）才可以通过。 |
+| Cyclicbarrier（循环栅栏）  | 使用AQS的Condition，让一组线程到达一个屏障时被阻塞，知道最后一个线程到达屏障时，屏障才会打开，所有被阻塞的线程才可继续运行。 |
+| ReentrantReadWriteLock     | 使用AQS同步状态中的16位保存写锁持有的次数，剩下的16位用于保存读锁的持有次数。 |
+| ThreadPoolExecutor         | Worker利用AQS同步状态实现对独占线程变量的设置（tryAcquire和tryRelease）。 |
 
 ### 自定义同步工具
 
