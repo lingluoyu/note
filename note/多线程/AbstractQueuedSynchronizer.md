@@ -1,3 +1,7 @@
+### AQS主要原理
+
+AQS核心思想，若被请求的资源当前为空闲状态，则将当前请求资源的线程设置为有效的工作线程，并将共享资源状态设置为锁定；当前请求的资源被占用时，其他请求资源的线程需要被阻塞，这种阻塞线程以及被唤醒是获取锁的机制通过  CLH 队列实现，暂时获取不到锁（资源）的线程将被加入到此队列中。
+
 ### AQS主要结构
 
 ```java
@@ -17,7 +21,7 @@ private transient Thread exclusiveOwnerThread;
 
 AQS等待队列如下图
 
-![aqs-0](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201205120210.png)**Node**结构
+![aqs-0](https://gitee.com/LoopSup/image/raw/master/img/20201205120210.png)**Node**结构
 
 ```java
 static final class Node {
@@ -79,7 +83,7 @@ protected final boolean compareAndSetState(int expect, int update) {
 
 通过修改State字段表示的同步状态来实现多线程的独占模式和共享模式（加锁过程）
 
-![27605d483e8935da683a93be015713f331378](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201205121629.png)![3f1e1a44f5b7d77000ba4f9476189b2e32806](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201205121639.png)
+![27605d483e8935da683a93be015713f331378](https://gitee.com/LoopSup/image/raw/master/img/20201205121629.png)![3f1e1a44f5b7d77000ba4f9476189b2e32806](https://gitee.com/LoopSup/image/raw/master/img/20201205121639.png)
 
 ### ReentrantLock
 

@@ -20,7 +20,7 @@ document.close();
 ```
 **生成pdf如下**
 
-![itext_01](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201203140205.png)
+![itext_01](https://gitee.com/LoopSup/image/raw/master/img/20201203140205.png)
 
 #### 更改字体
 
@@ -52,7 +52,7 @@ document.close();
 
 **生成pdf如下**
 
-![itext_02](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201203142903.png)
+![itext_02](https://gitee.com/LoopSup/image/raw/master/img/20201203142903.png)
 
 #### 插入图片
 
@@ -69,7 +69,7 @@ document.close();
 
 **生成pdf如下**
 
-![itext_03](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201203145806.png)
+![itext_03](https://gitee.com/LoopSup/image/raw/master/img/20201203145806.png)
 
 #### 生成表格
 
@@ -108,7 +108,7 @@ public static void process(Table table, String line, PdfFont font, boolean isHea
 
 **生成pdf如下**
 
-![itext_04](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201203151633.png)
+![itext_04](https://gitee.com/LoopSup/image/raw/master/img/20201203151633.png)
 
 
 
@@ -120,11 +120,11 @@ public static void process(Table table, String line, PdfFont font, boolean isHea
 
 1. 使用word创建模板页面“模板.docx”
 
-   ![itext_05](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201203170527.png)
+   ![itext_05](https://gitee.com/LoopSup/image/raw/master/img/20201203170527.png)
 
 2. 另存为pdf格式”模板.pdf“
 
-   ![itext_06](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201203170610.png)
+   ![itext_06](https://gitee.com/LoopSup/image/raw/master/img/20201203170610.png)
 
 3. 打开Adobe Acrobat pro
 
@@ -132,7 +132,7 @@ public static void process(Table table, String line, PdfFont font, boolean isHea
 
 5. 可选择修改表单域名称
 
-   ![itext_07](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201203170631.png)
+   ![itext_07](https://gitee.com/LoopSup/image/raw/master/img/20201203170631.png)
 
 6. 另存为”模板V2.pdf“
 
@@ -245,7 +245,7 @@ public static final void replaceTextFieldPdf(String templatePdfPath, String dest
 
 **生成文件如图**
 
-![itext_08](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201203170640.png)
+![itext_08](https://gitee.com/LoopSup/image/raw/master/img/20201203170640.png)
 
 
 

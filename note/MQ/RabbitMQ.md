@@ -4,7 +4,7 @@ RabbitMQ是一个实现了AMQP（Advanced Message Queuing Protocol）高级消�
 
 ##### RabbitMQ原理
 
-![v2-cf2ff62088efcca10d15162142015e82_720w](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201205084624.jpg)
+![v2-cf2ff62088efcca10d15162142015e82_720w](https://gitee.com/LoopSup/image/raw/master/img/20201205084624.jpg)
 
 1. Producer：数据发送方
 
@@ -65,7 +65,7 @@ Channel是我们与RabbitMQ打交道的最重要的一个接口，我们大部�
 
 ##### rabbitmq 消息转发流程
 
-![v2-ae6966318989e41001ef11d9f3724f46_720w](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201205084355.jpg)
+![v2-ae6966318989e41001ef11d9f3724f46_720w](https://gitee.com/LoopSup/image/raw/master/img/20201205084355.jpg)
 
 1. The producer publishes a message to the exchange.
 2. The exchange receives the message and is now responsible for the routing of the message.
@@ -83,7 +83,7 @@ ps：重点说下路由转发。生产者Producer在发送消息时，都需要�
 
 如下图：消息生成者生成一个message(payload是1，routing key为苹果)，两个binding(binding key分别为苹果、香蕉);exchange比对消息的routing key和binding key后，将消息发给了queue1，消息消费者1获得queue1的消息，got msg: 1
 
-![v2-7f766cdbe85f1d46090b3c0aa24bc527_720w](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201205084416.jpg)
+![v2-7f766cdbe85f1d46090b3c0aa24bc527_720w](https://gitee.com/LoopSup/image/raw/master/img/20201205084416.jpg)
 
 - Fanout exchange 复制分发路由
 
@@ -99,11 +99,11 @@ ps：重点说下路由转发。生产者Producer在发送消息时，都需要�
 
 如下图：消息生成者生成一个message(payload是1，routing key为quick.orange.rabbit)，两个binding(binding key分别为*.orange.**、***.*.rabbit)；exchange比对消息的routing key和binding key后,exchange将消息分发给两个queue，两个消费者获得queue的消息，got msg: 1
 
-![v2-f16152982f3770224d18630b18b8d21b_720w](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201205084434.jpg)
+![v2-f16152982f3770224d18630b18b8d21b_720w](https://gitee.com/LoopSup/image/raw/master/img/20201205084434.jpg)
 
 再如下图：消息生成者生成一个message(payload是1，routing key为lazy.pink.rabbit)，两个binding(binding key分别为*.orange.**、***.*.rabbit)；exchange比对消息的routing key和binding key后,exchange将消息分发给queue2，消费者2获得queue的消息，got msg: 1
 
-![v2-a649dee77629316ba1e8974bf94d8892_720w](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201205084451.jpg)
+![v2-a649dee77629316ba1e8974bf94d8892_720w](https://gitee.com/LoopSup/image/raw/master/img/20201205084451.jpg)
 
 ##### rabbitmq消息的可靠性
 
@@ -169,7 +169,7 @@ rabbitmqctl set_user_tags root administrator
 
 > 答案是不会
 
-![v2-1a8c0f9dec63787f021889873bf5cf49_720w](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201205084512.jpg)
+![v2-1a8c0f9dec63787f021889873bf5cf49_720w](https://gitee.com/LoopSup/image/raw/master/img/20201205084512.jpg)
 
 三个节点组成了一个RabbitMQ的集群，Exchange A的元数据信息在所有节点上是一致的，而Queue（存放消息的队列）的完整数据则只会存在于它所创建的那个节点上，其他节点只知道这个queue的metadata信息和一个指向queue的owner node的指针。
 

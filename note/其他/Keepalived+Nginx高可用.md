@@ -1,6 +1,6 @@
 ### Keepalived+Nginx+Jboss/Tomcat高可用负载均衡
 #### 架构图
-![](https://raw.githubusercontent.com/lingluoyu/image/master/img/20191210141333.png)
+![](https://gitee.com/LoopSup/image/raw/master/img/20191210141333.png)
 
 （1）用户通过域名请求到DNS，由DNS解析域名后返回对应的IP地址，该IP及为Keepalived映射服务器的虚拟IP
 

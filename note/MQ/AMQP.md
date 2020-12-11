@@ -1,6 +1,6 @@
 #### AMQP基本概念
 
-![20160310091724939](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201205084210.jpg)
+![20160310091724939](https://gitee.com/LoopSup/image/raw/master/img/20201205084210.jpg)
 
 * <font color='red'>Broker</font>:接收和分发消息的应用，RabbitMQ Server就是Message Broker。
 * <font color='red'>Virtual host</font>:出于多租户和安全因素设计的，把AMQP的基本组件划分到一个虚拟的分组中，类似于网络中的namespace概念。*当多个不同的用户使用同一个RabbitMQ Server提供的服务时，可以划分出多个vhost，每个用户在自己的vhost创建exchange/queue等*。
@@ -12,7 +12,7 @@
 
 #### 典型的“生产/消费”消息模型
 
-![20160310091838945](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201205084225.jpg)
+![20160310091838945](https://gitee.com/LoopSup/image/raw/master/img/20201205084225.jpg)
 
 生产者发送消息到broker server（RabbitMQ）。在Broker内部，用户创建Exchange/Queue，通过Binding规则将两者联系在一起。Exchange分发消息，根据类型/binding的不同分发策略有区别。消息最后来到Queue中，等待消费者取走。
 
@@ -22,19 +22,19 @@ Exchange有多种类型，最常用的是Direct/Fanout/Topic三种类型。
 
 Direct
 
-![20160310091854457](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201205084239.jpg)
+![20160310091854457](https://gitee.com/LoopSup/image/raw/master/img/20201205084239.jpg)
 
 Message中的“routing key”如果和Binding中的“binding key”一致，Direct exchange则将message发到对应的queue中。
 
 Fanout
 
-![20160310091909055](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201205084249.jpg)
+![20160310091909055](https://gitee.com/LoopSup/image/raw/master/img/20201205084249.jpg)
 
 每个发到Fanout类型Exchange的message都会分到所有绑定的queue上去。
 
 Topic
 
-![20160310091924023](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201205084259.jpg)
+![20160310091924023](https://gitee.com/LoopSup/image/raw/master/img/20201205084259.jpg)
 
 Routing key中可以包含两种通配符，类似于正则表达式：
 

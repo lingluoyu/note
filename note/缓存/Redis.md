@@ -39,7 +39,7 @@ Redis 是一种基于**键值对（key-value）**的 速度非常快NoSQL 数据
 
 #### Redis核心对象
 
-![redisObject对象](https://raw.githubusercontent.com/lingluoyu/image/master/img/20191210155928.png)
+![redisObject对象](https://gitee.com/LoopSup/image/raw/master/img/20191210155928.png)
 
 redis内部使用一个redisObject对象来表示所有的key和value，redisObject最主要的信息如上图所示：type表示一个value对象具体是何种数据类型，encoding是不同数据类型在redis内部的存储方式。比如：type=string表示value存储的是一个普通字符串，那么encoding可以是raw或者int。
 
@@ -407,7 +407,7 @@ Redis 过期策略是：**定期删除+惰性删除**。
 
 #### Redis主从架构
 
-一主多从，主负责写，并将数据复制到slave节点，从节点负责读。![advanced-java](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201208095407.jpg)
+一主多从，主负责写，并将数据复制到slave节点，从节点负责读。![advanced-java](https://gitee.com/LoopSup/image/raw/master/img/20201208095407.jpg)
 
 **Redis replication核心机制**
 
@@ -423,7 +423,7 @@ Redis 过期策略是：**定期删除+惰性删除**。
 当启动一个 slave node 的时候，它会发送一个 PSYNC 命令给 master node。
 
 如果这是 slave node 初次连接到 master node，那么会触发一次 full resynchronization 全量复制。此时 master 会启动一个后台线程，开始生成一份 RDB 快照文件，同时还会将从客户端 client 新收到的所有写命令缓存在内存中。 RDB 文件生成完毕后， master 会将这个 RDB 发送给 slave，slave 会先写入本地磁盘，然后再从本地磁盘加载到内存中，接着 master 会将内存中缓存的写命令发送到 slave，slave 也会同步这些数据。slave node 如果跟 master node 有
-网络故障，断开了连接，会自动重连，连接之后 master node 仅会复制给 slave 部分缺少的数据。![advanced-java2](https://raw.githubusercontent.com/lingluoyu/image/master/img/20201208100724.jpg)
+网络故障，断开了连接，会自动重连，连接之后 master node 仅会复制给 slave 部分缺少的数据。![advanced-java2](https://gitee.com/LoopSup/image/raw/master/img/20201208100724.jpg)
 
 #### Redis故障转移
 
@@ -445,7 +445,7 @@ sentinel（哨兵），主要功能
 
 Redis缓存层由于某种原因宕机后，所有的请求会涌向存储层（数据库），短时间内的高并发请求可能会导致存储层挂机，称之为“Redis雪崩”。
 
-![缓存雪崩](https://raw.githubusercontent.com/lingluoyu/image/master/img/20191210143147.png)
+![缓存雪崩](https://gitee.com/LoopSup/image/raw/master/img/20191210143147.png)
 
 缓存雪崩的事前事中事后的**解决方案**如下：
 
@@ -457,7 +457,7 @@ Redis缓存层由于某种原因宕机后，所有的请求会涌向存储层（
 
 请求在数据库中不存在的数据，Redis缓存无法查询到数据，因此无法缓存，每次请求都会到数据库。
 
-![缓存穿透](https://raw.githubusercontent.com/lingluoyu/image/master/img/20191210143331.png)
+![缓存穿透](https://gitee.com/LoopSup/image/raw/master/img/20191210143331.png)
 
 **解决方案**
 
@@ -481,9 +481,9 @@ key 在失效的瞬间，大量的请求就击穿了缓存，直接请求数据�
 
 * 海量数据查重
 
-![海量数据查重](https://raw.githubusercontent.com/lingluoyu/image/master/img/20191210143246.png)
+![海量数据查重](https://gitee.com/LoopSup/image/raw/master/img/20191210143246.png)
 
 * 避免缓存穿透
 
-![避免缓存穿透](https://raw.githubusercontent.com/lingluoyu/image/master/img/20191210143218.png)
+![避免缓存穿透](https://gitee.com/LoopSup/image/raw/master/img/20191210143218.png)
 
