@@ -1,5 +1,7 @@
 ### Java内存区域
 
+![jvm-0](https://gitee.com/LoopSup/image/raw/master/img/jvm-0.jpg)
+
 线程私有：
 
 - 程序计数器
