@@ -6,11 +6,9 @@
 5. 验证成功返回 Authentication 放入 SecurityContextHolder中
 
 ### 自定义登录
-1. 实现UserDetailsService接口，自定义loadUserByUsername()方法
+1. 实现**UserDetailsService**接口，自定义loadUserByUsername()方法
 
-**UserDetailService**
-
-```
+```java
 @Service
 public class UserService implements UserDetailsService {
 
@@ -35,10 +33,9 @@ public class UserService implements UserDetailsService {
 }
 ```
 
-2. 自定义AuthenticationFilter实现对自定义登录的拦截，继承AbstractAuthenticationProcessingFilter，并构建未认证的SmsCodeAuthenticationToken
-**AuthenticationFilter**
+2. 自定义**AuthenticationFilter**实现对自定义登录的拦截，继承AbstractAuthenticationProcessingFilter，并构建未认证的SmsCodeAuthenticationToken
 
-```
+```java
 /**
  * 短信登录的鉴权过滤器，模仿 UsernamePasswordAuthenticationFilter 实现
  */
@@ -104,47 +101,29 @@ public class SmsCodeAuthenticationFilter extends AbstractAuthenticationProcessin
     }
 }
 ```
-**AuthenticationToken**
+自定义认证对象**AuthenticationToken**
 
-```
-/*
- *这一步的作用是为了替换原有系统的 UsernamePasswordAuthenticationToken 用来做验证
- *
- * 代码都是从UsernamePasswordAuthenticationToken 里粘贴出来的
- *
- */
+```java
+//替换原有系统的 UsernamePasswordAuthenticationToken 用来做验证
 public class SmsCodeAuthenticationToken extends AbstractAuthenticationToken {
     private static final long serialVersionUID = SpringSecurityCoreVersion.SERIAL_VERSION_UID;
 
-    /**
-     * 在 UsernamePasswordAuthenticationToken 中该字段代表登录的用户名，
-     * 在这里就代表登录的手机号码
-     */
+    //在 UsernamePasswordAuthenticationToken 中该字段代表登录的用户名，在这里就代表登录的手机号码
     private final Object principal;
-
-    /**
-     * 构建一个没有鉴权的 SmsCodeAuthenticationToken
-     */
+	
+    //构建一个没有鉴权的 SmsCodeAuthenticationToken
     public SmsCodeAuthenticationToken(Object principal) {
         super(null);
         this.principal = principal;
         setAuthenticated(false);
     }
 
-    /**
-     * 构建拥有鉴权的 SmsCodeAuthenticationToken
-     */
+	//构建拥有鉴权的 SmsCodeAuthenticationToken
     public SmsCodeAuthenticationToken(Object principal, Collection<? extends GrantedAuthority> authorities) {
         super(authorities);
         this.principal = principal;
         super.setAuthenticated(true); // must use super, as we override
     }
-
-
-
-    // ~ Methods
-    // 剩下的方法不用动就行了 就是从 UsernamePasswordAuthenticationToken 里粘贴出来的
-    // ========================================================================================================
 
     public Object getCredentials() {
         return null;
@@ -170,13 +149,10 @@ public class SmsCodeAuthenticationToken extends AbstractAuthenticationToken {
 }
 ```
 
-3. 自定义AuthenticationProvider进行验证
-**AuthenticationProvider**
+3. 自定义**AuthenticationProvider**进行验证
 
-```
-/**
- * 短信登陆鉴权 Provider，要求实现 AuthenticationProvider 接口
- */
+```java
+//短信登陆鉴权 Provider，要求实现 AuthenticationProvider 接口
 public class SmsCodeAuthenticationProvider implements AuthenticationProvider {
 	//上下文中的 userDetailsService
     private UserDetailsService userDetailsService;
@@ -242,7 +218,7 @@ public class SmsCodeAuthenticationProvider implements AuthenticationProvider {
 
 **自定义成功处理器和失败处理器**
 
-```
+```java
 @Component
 @Slf4j
 public class CustomAuthenticationSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
@@ -259,7 +235,7 @@ public class CustomAuthenticationSuccessHandler extends SavedRequestAwareAuthent
 }
 ```
 
-```
+```java
 @Component
 @Slf4j
 public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationFailureHandler {
@@ -278,7 +254,7 @@ public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationF
 
 SecurityConfigurerAdapter 顾名思义就是 SecurityConfigurer的适配器，我们只需要吧我们刚才写的 AuthenticationFilter AuthenticationToken AuthenticationProvider 都放进来就可以与security挂上了。
 
-```
+```java
 @Component
 public class SmsCodeAuthenticationSecurityConfig extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
     @Autowired //我们自己定义的UserDetailsService
@@ -310,9 +286,9 @@ public class SmsCodeAuthenticationSecurityConfig extends SecurityConfigurerAdapt
 
 **WebSecurityConfigurerAdapter**
 
-要想让 咱们自定义的配置生效，必须在配置中加入 http.apply(config) 才可以。
+在配置中加入 http.apply(config) ，使自定义配置生效。
 
-```
+```java
 @Configuration
 @EnableWebSecurity
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {

@@ -34,7 +34,6 @@ System.out.println(testBean.toString());
 #### Spring创建Bean流程
 
 ```java
-
 //调用ClassPathXmlApplicationContext构造器创建Spring容器
 public ClassPathXmlApplicationContext(String configLocation) throws BeansException {
 	this(new String[] {configLocation}, true, null);
@@ -49,23 +48,23 @@ public ClassPathXmlApplicationContext(
     //配置文件路径
     setConfigLocations(configLocations);
     if (refresh) {
-        //调用父类refresh方法
+        //调用AbstractApplicationContext.refresh()方法
         refresh();
     }
 }
 
+//Spring容器构造核心类
 //org.springframework.context.support.AbstractApplicationContext#refresh
 @Override
 public void refresh() throws BeansException, IllegalStateException {
     synchronized (this.startupShutdownMonitor) {
-        //刷新前设置一些参数，如启动时间戳、上下文是否激活，验证属性
+        //刷新前设置一些参数
         // Prepare this context for refreshing.
         prepareRefresh();
 
-        //跳转1.1
         //此步结束后，配置文件就会被解析成BeanDefinition，注册到BeanFactory中
         //此时Bean还未被初始化，只是将配置信息提取出来
-        //将这些信息都保存到了注册中心(核心是一个 beanName-> beanDefinition 的 map)
+        //将这些信息都保存到注册中心(核心是一个 beanName-> beanDefinition 的 map)
         // Tell the subclass to refresh the internal bean factory.
         ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
@@ -127,9 +126,11 @@ public void refresh() throws BeansException, IllegalStateException {
         }
     }
 }
+```
 
-//1.1
-//org.springframework.context.support.AbstractApplicationContext#obtainFreshBeanFactory
+`AbstractApplicationContext.obtainFreshBeanFactory`方法，刷新BeanFactory，在这一步中，也会将BeanDefinition加载到BeanFactory中。
+
+```java
 protected ConfigurableListableBeanFactory obtainFreshBeanFactory() {
     refreshBeanFactory();
     return getBeanFactory();
@@ -137,7 +138,7 @@ protected ConfigurableListableBeanFactory obtainFreshBeanFactory() {
 
 @Override
 protected final void refreshBeanFactory() throws BeansException {
-    //BeanFactory已存在，销毁
+    //如果BeanFactory已存在，就销毁
     if (hasBeanFactory()) {
         destroyBeans();
         closeBeanFactory();
@@ -148,11 +149,9 @@ protected final void refreshBeanFactory() throws BeansException {
         //对beanFactory进行设置,bean注册等操作,最后将beanFactory赋值给本类的beanFactory属性
         DefaultListableBeanFactory beanFactory = createBeanFactory();
         beanFactory.setSerializationId(getId());
-        //由AbstractRefreshableApplicationContext实现，
 		//设置 BeanFactory 的两个配置属性：是否允许 Bean 覆盖、是否允许循环引用
         customizeBeanFactory(beanFactory);
-        //加载Bean定义到BeanFactory中
-        //见1.1.1
+        //加载BeanDefinitions到BeanFactory中
         loadBeanDefinitions(beanFactory);
         synchronized (this.beanFactoryMonitor) {
             this.beanFactory = beanFactory;
@@ -163,7 +162,6 @@ protected final void refreshBeanFactory() throws BeansException {
     }
 }
 
-//1.1.1
 //org.springframework.context.support.AbstractXmlApplicationContext#loadBeanDefinitions
 @Override
 protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) throws BeansException, IOException {
@@ -171,7 +169,7 @@ protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) throw
     // Create a new XmlBeanDefinitionReader for the given BeanFactory.
     XmlBeanDefinitionReader beanDefinitionReader = new XmlBeanDefinitionReader(beanFactory);
 
-    // 然后设置环境属性以及 资源加载器ResourceLoader 为this（实际为 ClassPathXmlApplicationContext）
+    // 设置环境属性以及资源加载器ResourceLoader为this（实际为 ClassPathXmlApplicationContext）
     // Configure the bean definition reader with this context's
     // resource loading environment.
     beanDefinitionReader.setEnvironment(this.getEnvironment());
@@ -182,12 +180,10 @@ protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) throw
     // Allow a subclass to provide custom initialization of the reader,
     // then proceed with actually loading the bean definitions.
     initBeanDefinitionReader(beanDefinitionReader);
-    //加载BeanDefinition，从配置文件中读取BeanDefiniton注册到注册表中
-    //见1.1.2
+    //加载BeanDefinition，从配置文件中读取BeanDefiniton
     loadBeanDefinitions(beanDefinitionReader);
 }
 
-//1.1.2
 //org.springframework.context.support.AbstractXmlApplicationContext#loadBeanDefinitions
 protected void loadBeanDefinitions(XmlBeanDefinitionReader reader) throws BeansException, IOException {
     //加载配置资源
@@ -195,16 +191,14 @@ protected void loadBeanDefinitions(XmlBeanDefinitionReader reader) throws BeansE
     if (configResources != null) {
         reader.loadBeanDefinitions(configResources);
     }
-    //加载之前设置的xml配置文件
+    //加载ClassPathXmlApplicationContext初始化方法中设置的xml配置文件
     String[] configLocations = getConfigLocations();
     if (configLocations != null) {
         //循环加载xml文件的Bean返回Bean总个数
-        //见1.1.3
         reader.loadBeanDefinitions(configLocations);
     }
 }
 
-//1.1.3
 //org.springframework.beans.factory.support.AbstractBeanDefinitionReader#loadBeanDefinitions
 public int loadBeanDefinitions(String location, @Nullable Set<Resource> actualResources) throws BeanDefinitionStoreException {
     ResourceLoader resourceLoader = getResourceLoader();
@@ -237,7 +231,6 @@ public int loadBeanDefinitions(String location, @Nullable Set<Resource> actualRe
         // Can only load single resources by absolute URL.
         Resource resource = resourceLoader.getResource(location);
         //通过绝对路径读取单个resources中BeanDefinition
-        //见1.1.4
         int count = loadBeanDefinitions(resource);
         if (actualResources != null) {
             actualResources.add(resource);
@@ -249,7 +242,6 @@ public int loadBeanDefinitions(String location, @Nullable Set<Resource> actualRe
     }
 }
 
-//1.1.4
 //org.springframework.beans.factory.xml.XmlBeanDefinitionReader#loadBeanDefinitions
 public int loadBeanDefinitions(EncodedResource encodedResource) throws BeanDefinitionStoreException {
     Assert.notNull(encodedResource, "EncodedResource must not be null");
@@ -275,7 +267,7 @@ public int loadBeanDefinitions(EncodedResource encodedResource) throws BeanDefin
             if (encodedResource.getEncoding() != null) {
                 inputSource.setEncoding(encodedResource.getEncoding());
             }
-            //解析 Document, 并在解析之后进行注册(注册方法 见1.1.5)
+            //解析Document, 并在解析之后进行注册
             return doLoadBeanDefinitions(inputSource, encodedResource.getResource());
         }
         finally {
@@ -292,16 +284,6 @@ public int loadBeanDefinitions(EncodedResource encodedResource) throws BeanDefin
             this.resourcesCurrentlyBeingLoaded.remove();
         }
     }
-}
-
-//1.1.5
-//org.springframework.beans.factory.xml.XmlBeanDefinitionReader#registerBeanDefinitions
-//注册就是把beanName和beanDefinition对象作为键值对放到BeanFactory对象的beanDefinitionMap
-public int registerBeanDefinitions(Document doc, Resource resource) throws BeanDefinitionStoreException {
-    BeanDefinitionDocumentReader documentReader = createBeanDefinitionDocumentReader();
-    int countBefore = getRegistry().getBeanDefinitionCount();
-    documentReader.registerBeanDefinitions(doc, createReaderContext(resource));
-    return getRegistry().getBeanDefinitionCount() - countBefore;
 }
 
 //org.springframework.beans.factory.support.DefaultListableBeanFactory#registerBeanDefinition
@@ -377,9 +359,11 @@ public void registerBeanDefinition(String beanName, BeanDefinition beanDefinitio
         resetBeanDefinition(beanName);
     }
 }
+```
 
-//1.2
-//org.springframework.context.support.AbstractApplicationContext#prepareBeanFactory
+`AbstractApplicationContext#prepareBeanFactory`方法，为BeanFactory添加一些内置组件，预处理BeanFactory。
+
+```java
 //准备BeanFactory，设置一些参数，如BeanPostProcesser
 protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
     //设置类加载器
@@ -394,8 +378,7 @@ protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
     //添加了一个处理aware相关接口的beanPostProcessor扩展，实现了 Aware 接口的 beans 在初始化的时候，这个 processor 负责回调，主要是使用beanPostProcessor的postProcessBeforeInitialization()前置处理方法实现aware相关接口的功能，aware接口是用来给bean注入一些资源的接口，回调 ApplicationContextAware、EnvironmentAware、ResourceLoaderAware。
     // Configure the bean factory with context callbacks.
     beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));
-    //忽略自动装配的类，这些类都不能使用@Resource或者@Autowired自动装配获取对象
-    //如果某个 bean 依赖于以下几个接口的实现类，在自动装配的时候忽略它们，  Spring 会通过其他方式来处理这些依赖。
+    //设置忽略自动装配的接口类，这些类及其实现类都不能使用注解（@Resource或者@Autowired）方式注入，Spring会通过其他方式注入这些类及其实现类。
     beanFactory.ignoreDependencyInterface(EnvironmentAware.class);
     beanFactory.ignoreDependencyInterface(EmbeddedValueResolverAware.class);
     beanFactory.ignoreDependencyInterface(ResourceLoaderAware.class);
@@ -411,10 +394,11 @@ protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
     beanFactory.registerResolvableDependency(ApplicationEventPublisher.class, this);
     beanFactory.registerResolvableDependency(ApplicationContext.class, this);
 
-    //配置后置处理器，注册监听器，监听自定义ApplicationEvent，创建一个实现 ApplicationListener并注册为Spring bean的类
+    //配置后置处理器，注册监听器，监听自定义ApplicationEvent（创建一个实现ApplicationListener并注册为Spring bean的类）
     // Register early post-processor for detecting inner beans as ApplicationListeners.
     beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(this));
 
+    //添加编译时的 AspectJ
     //如果定义了则添加loadTimeWeaver功能的beanPostProcessor扩展，并且创建一个临时的classLoader来让其处理真正的bean。spring的loadTimeWeaver主要是通过 instrumentation 的动态字节码增强在装载期注入依赖。tips: ltw 是 AspectJ 的概念，指的是在运行期进行织入，这个和 Spring AOP 不一样，
     // Detect a LoadTimeWeaver and prepare for weaving, if found.
     if (beanFactory.containsBean(LOAD_TIME_WEAVER_BEAN_NAME)) {
@@ -423,15 +407,18 @@ protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
         beanFactory.setTempClassLoader(new ContextTypeMatchClassLoader(beanFactory.getBeanClassLoader()));
     }
 
+    //注册 environment 组件，类型是【ConfigurableEnvironment】
     // Register default environment beans.
     if (!beanFactory.containsLocalBean(ENVIRONMENT_BEAN_NAME)) {
         beanFactory.registerSingleton(ENVIRONMENT_BEAN_NAME, getEnvironment());
     }
+    
+    //注册 systemProperties 组件，类型是【Map<String, Object>】
     //判断是否定义了名为systemProperties的bean，如果没有则加载系统获取当前系统属性System.getProperties()并注册为一个单例bean。假如有AccessControlException权限异常则创建一个ReadOnlySystemAttributesMap对象，可以看到创建时重写了getSystemAttribute()方法，查看ReadOnlySystemAttributesMap的代码可以得知在调用get方法的时候会去调用这个方法来获取key对应的对象，当获取依旧有权限异常AccessControlException的时候则返回null。
     if (!beanFactory.containsLocalBean(SYSTEM_PROPERTIES_BEAN_NAME)) {
         beanFactory.registerSingleton(SYSTEM_PROPERTIES_BEAN_NAME, getEnvironment().getSystemProperties());
     }
-    //获得 系统环境变量
+    //注册 systemEnvironment 组件，类型是【Map<String, Object>】
     if (!beanFactory.containsLocalBean(SYSTEM_ENVIRONMENT_BEAN_NAME)) {
         beanFactory.registerSingleton(SYSTEM_ENVIRONMENT_BEAN_NAME, getEnvironment().getSystemEnvironment());
     }
@@ -440,8 +427,9 @@ protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
 
 #### 获取Bean
 
+获取Bean调用的是`ApplicationContext`的子类`AbstractBeanFactory`的`getBean()`方法
+
 ```java
-//org.springframework.beans.factory.support.AbstractBeanFactory#getBean
 @Override
 public <T> T getBean(String name, Class<T> requiredType) throws BeansException {
     return doGetBean(name, requiredType, null, false);
@@ -457,7 +445,6 @@ protected <T> T doGetBean(final String name, @Nullable final Class<T> requiredTy
     final String beanName = transformedBeanName(name);
     Object bean;
 
-    //见2.1
     //尝试从缓存（DefaultSingletonBeanRegistry.singletonObjects）中加载Bean实例
     // Eagerly check singleton cache for manually registered singletons.
     Object sharedInstance = getSingleton(beanName);
@@ -548,7 +535,7 @@ protected <T> T doGetBean(final String name, @Nullable final Class<T> requiredTy
             if (mbd.isSingleton()) {//单例Bean
                 sharedInstance = getSingleton(beanName, () -> {
                     try {
-                        //见2.2
+                        //创建Bean代码
                         return createBean(beanName, mbd, args);
                     }
                     catch (BeansException ex) {
@@ -627,16 +614,29 @@ protected <T> T doGetBean(final String name, @Nullable final Class<T> requiredTy
     }
     return (T) bean;
 }
+```
+`DefaultSingletonBeanRegistry#getSingleton`方法，Spring使用三级缓存解决**循环依赖**问题
 
-//2.1
-//org.springframework.beans.factory.support.DefaultSingletonBeanRegistry#getSingleton
-//Spring使用三级缓存解决依赖循环问题
+```java
+//第一级缓存，Map<BeanName, BeanInstance>，用于存放完整的单例Bean
+private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
+//第二级缓存，Map<BeanName, BeanInstance>，用于存放提前暴露的单例对象（Bean被提前暴露的引用,Bean还在创建中）
+private final Map<String, Object> earlySingletonObjects = new HashMap<>(16);
+//第三级缓存，Map<BeanName, ObjectFactory>，用于存储单例模式下提前暴露的Bean实例的引用（正在创建中）。
+private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap<>(16);
+//创建中的单例对象
+private final Set<String> singletonsCurrentlyInCreation =
+			Collections.newSetFromMap(new ConcurrentHashMap<>(16));
 @Nullable
 protected Object getSingleton(String beanName, boolean allowEarlyReference) {
+    //先从第一级缓存singletonObjects获取Bean
     Object singletonObject = this.singletonObjects.get(beanName);
+    //获取不到且是正在创建中的Bean
     if (singletonObject == null && isSingletonCurrentlyInCreation(beanName)) {
         synchronized (this.singletonObjects) {
+            //从二级缓存earlySingletonObjects中获取Bean
             singletonObject = this.earlySingletonObjects.get(beanName);
+            //从二级缓存中获取不到，则从三级缓存中获取存入二级缓存，并从三级缓存中移除
             if (singletonObject == null && allowEarlyReference) {
                 ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);
                 if (singletonFactory != null) {
@@ -649,8 +649,44 @@ protected Object getSingleton(String beanName, boolean allowEarlyReference) {
     }
     return singletonObject;
 }
+```
+`AbstractAutowireCapableBeanFactory#doCreateBean`方法中代码
 
-//2.2
+```java
+//判断是否需要提前暴露
+// Eagerly cache singletons to be able to resolve circular references
+// even when triggered by lifecycle interfaces like BeanFactoryAware.
+boolean earlySingletonExposure = (mbd.isSingleton() && this.allowCircularReferences &&
+                                  isSingletonCurrentlyInCreation(beanName));
+if (earlySingletonExposure) {
+    if (logger.isTraceEnabled()) {
+        logger.trace("Eagerly caching bean '" + beanName +
+                     "' to allow for resolving potential circular references");
+    }
+    //解决循环依赖 第二个参数是回调接口，实现的功能是将切面动态织入 bean
+    addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));
+}
+
+//org.springframework.beans.factory.support.DefaultSingletonBeanRegistry#addSingletonFactory
+protected void addSingletonFactory(String beanName, ObjectFactory<?> singletonFactory) {
+    Assert.notNull(singletonFactory, "Singleton factory must not be null");
+    synchronized (this.singletonObjects) {
+        //singletonObjects中是否存在Bean
+        if (!this.singletonObjects.containsKey(beanName)) {
+            //放入 beanName -> beanFactory，到时在 getSingleton() 获取单例时，可直接获取创建对应 bean 的工厂，解决循环依赖
+            this.singletonFactories.put(beanName, singletonFactory);
+            //从提前曝光的缓存中移除之前在 getSingleton() 放入的Bean
+            this.earlySingletonObjects.remove(beanName);
+            //向注册缓存中添加Bean
+            this.registeredSingletons.add(beanName);
+        }
+    }
+}
+```
+
+继续创建Bean的代码
+
+```java
 //org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory#createBean
 protected Object createBean(String beanName, RootBeanDefinition mbd, @Nullable Object[] args)
     throws BeanCreationException {
@@ -694,7 +730,6 @@ protected Object createBean(String beanName, RootBeanDefinition mbd, @Nullable O
 
     try {
         //创建 bean
-        //见2.3
         Object beanInstance = doCreateBean(beanName, mbdToUse, args);
         if (logger.isTraceEnabled()) {
             logger.trace("Finished creating instance of bean '" + beanName + "'");
@@ -712,7 +747,6 @@ protected Object createBean(String beanName, RootBeanDefinition mbd, @Nullable O
     }
 }
 
-//2.3
 //org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory#doCreateBean
 protected Object doCreateBean(final String beanName, final RootBeanDefinition mbd, final @Nullable Object[] args)
 			throws BeanCreationException {
@@ -726,7 +760,7 @@ protected Object doCreateBean(final String beanName, final RootBeanDefinition mb
         //说明不是 FactoryBean，这里实例化 Bean
         instanceWrapper = createBeanInstance(beanName, mbd, args);
     }
-    //这个就是 Bean 里面的 我们定义的类 的实例，很多地方我直接描述成 "bean 实例"
+    //这个就是 Bean 里面的 我们定义的类 的实例
     final Object bean = instanceWrapper.getWrappedInstance();
     //类型
     Class<?> beanType = instanceWrapper.getWrappedClass();
