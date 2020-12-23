@@ -1,8 +1,71 @@
-#### RabbitMQ
+## RabbitMQ
 
 RabbitMQ是一个实现了AMQP（Advanced Message Queuing Protocol）高级消息队列协议的消息队列服务，用Erlang语言。
 
-##### RabbitMQ原理
+优点：
+
+- 由于erlang语言的特性，mq性能较好，高并发；
+- 健壮、稳定、易用、跨平台、支持多种语言、文档齐全；
+- 有消息确认机制和持久化机制，可靠性高；
+- 高度可定制的路由；
+- 管理界面较丰富，在互联网公司也有较大规模的应用；
+- 社区活跃度高；
+
+缺点：
+
+- 尽管结合erlang语言本身的并发优势，性能较好，但是不利于做二次开发和维护；
+- 实现了代理架构，意味着消息在发送到客户端之前可以在中央节点上排队。此特性使得RabbitMQ易于使用和部署，但是使得其运行速度较慢，因为中央节点增加了延迟，消息封装后也比较大；
+- 需要学习比较复杂的接口和协议，学习和维护成本较高；
+
+### AMQP
+
+#### AMQP基本概念
+
+![20160310091724939](https://gitee.com/LoopSup/image/raw/master/img/20201205084210.jpg)
+
+* <font color='red'>Broker</font>:接收和分发消息的应用，RabbitMQ Server就是Message Broker。
+* <font color='red'>Virtual host</font>:出于多租户和安全因素设计的，把AMQP的基本组件划分到一个虚拟的分组中，类似于网络中的namespace概念。*当多个不同的用户使用同一个RabbitMQ Server提供的服务时，可以划分出多个vhost，每个用户在自己的vhost创建exchange/queue等*。
+* <font color='red'>Connection</font>:publisher/consumer和broker之间的TCP连接。*断开连接的操作只会在client端进行，Broker不会断开连接*，除非出现网络故障或broker服务出险问题。
+* <font color='red'>Channel</font>:如果每一次访问RabbitMQ都建立一个Connection，在消息量大的时候建立TCP Connection的开销将是巨大的，效率也较低。Channel是在connection内部建立的逻辑连接，如果应用程序支持多线程，通常每个thread创建单独的channel进行通讯，AMQP method包含了channel id帮助客户端和message broker识别channel，所以channel之间是完全隔离的。Channel作为轻量级的Connection极大减少了操作系统建立TCP Connection的开销。
+* <font color='red'>Exchange</font>:message到达broker的第一站，根据分发规则，匹配查询表中的routing key，分发消息到queue中去。常用的类型有：direct（point-to-point），topic（publish-subscribe）and fanout（multicast）。
+* <font color='red'>Queue</font>:消息最终被送到这里等待consumer取走。一个message可以被同时拷贝到多个queue中。
+* <font color='red'>Binding</font>:exchange和queue之间的虚拟连接，binding中可以包含routing key。Binding信息被保存到exchange中的查询表中，用于message的分发依据。
+
+#### 典型的“生产/消费”消息模型
+
+![20160310091838945](https://gitee.com/LoopSup/image/raw/master/img/20201205084225.jpg)
+
+生产者发送消息到broker server（RabbitMQ）。在Broker内部，用户创建Exchange/Queue，通过Binding规则将两者联系在一起。Exchange分发消息，根据类型/binding的不同分发策略有区别。消息最后来到Queue中，等待消费者取走。
+
+#### Exchange类型
+
+Exchange有多种类型，最常用的是Direct/Fanout/Topic三种类型。
+
+Direct
+
+![20160310091854457](https://gitee.com/LoopSup/image/raw/master/img/20201205084239.jpg)
+
+Message中的“routing key”如果和Binding中的“binding key”一致，Direct exchange则将message发到对应的queue中。
+
+Fanout
+
+![20160310091909055](https://gitee.com/LoopSup/image/raw/master/img/20201205084249.jpg)
+
+每个发到Fanout类型Exchange的message都会分到所有绑定的queue上去。
+
+Topic
+
+![20160310091924023](https://gitee.com/LoopSup/image/raw/master/img/20201205084259.jpg)
+
+Routing key中可以包含两种通配符，类似于正则表达式：
+
+```
+"#”通配任何零个或多个word 
+
+“*”通配任何单个word
+```
+
+### RabbitMQ原理
 
 ![v2-cf2ff62088efcca10d15162142015e82_720w](https://gitee.com/LoopSup/image/raw/master/img/20201205084624.jpg)
 
@@ -63,7 +126,7 @@ Channel是我们与RabbitMQ打交道的最重要的一个接口，我们大部�
 
 当多个不同的用户使用同一个RabbitMQ server提供的服务时，可以划分出多个vhost，每个用户在自己的vhost创建exchange／queue
 
-##### rabbitmq 消息转发流程
+#### rabbitmq 消息转发流程
 
 ![v2-ae6966318989e41001ef11d9f3724f46_720w](https://gitee.com/LoopSup/image/raw/master/img/20201205084355.jpg)
 
@@ -75,7 +138,7 @@ Channel是我们与RabbitMQ打交道的最重要的一个接口，我们大部�
 
 ps：重点说下路由转发。生产者Producer在发送消息时，都需要指定一个RoutingKey和Exchange，Exchange收到消息后可以看到消息中指定的RoutingKey，再根据当前Exchange的ExchangeType,按一定的规则将消息转发到相应的queue中去。
 
-##### rabbitmq中exchange type
+#### rabbitmq中exchange type
 
 - Direct exchange 直接转发路由
 
@@ -91,7 +154,7 @@ ps：重点说下路由转发。生产者Producer在发送消息时，都需要�
 
 如下图：消息生成者生成一个message(payload是1，routing key为苹果)，z两个binding(binding key分别为苹果、香蕉)；exchange将消息分发给两个queue，两个消费者获得queue的消息，got msg: 1
 
-![img](D:\MySpace\GitHub\note\picture\v2-e2b7bc4ab9e0598aff01c3855ab2f383_720w.jpg)
+![rabbitmq-1](https://gitee.com/LoopSup/image/raw/master/img/rabbitmq-1.jpg)
 
 - topic exchange 通配路由
 
@@ -105,9 +168,9 @@ ps：重点说下路由转发。生产者Producer在发送消息时，都需要�
 
 ![v2-a649dee77629316ba1e8974bf94d8892_720w](https://gitee.com/LoopSup/image/raw/master/img/20201205084451.jpg)
 
-##### rabbitmq消息的可靠性
+### rabbitmq消息的可靠性
 
-**1、Message durability**
+#### 消息持久化（Message durability）
 
 将保存在内存中的数据都写入磁盘，防止服务器重启后数据丢失；有哪些数据需要持久化保存呢？
 
@@ -117,7 +180,7 @@ ps：重点说下路由转发。生产者Producer在发送消息时，都需要�
 
 内存节点：非持久化的消息一般只保存在内存中，在内存吃紧的时候会被换入到磁盘中，以节省内存空间；
 
-**2、Message acknowledgment**
+#### 消费者消息确认机制
 
 在实际应用中，可能会发生消费者收到Queue中的消息，但没有处理完成就宕机（或出现其他意外）的情况，这种情况下就可能会导致消息丢失。为了避免这种情况发生，我们可以要求消费者在消费完消息后发送一个回执给RabbitMQ，RabbitMQ收到消息回执（Message acknowledgment）后才将该消息从Queue中移除。
 
@@ -125,45 +188,174 @@ ps：重点说下路由转发。生产者Producer在发送消息时，都需要�
 
 那么什么是正确收到呢？通过ACK。每个Message都要被acknowledged（确认，ACK）。我们可以显示的在程序中去ACK，也可以自动的ACK。如果有数据没有被ACK，那么RabbitMQ Server会把这个信息发送到下一个Consumer。
 
-**3、生产者消息确认机制**
+#### 生产者消息确认机制
 
 如何知道消息有没有正确到达exchange呢？
 
-1、通过AMQP提供的事务机制实现：
+##### 通过AMQP提供的事务机制实现（存在性能问题）：
 
-[RabbitMQ系列（四）RabbitMQ事务和Confirm发送方消息确认--深入解读 - 掘金juejin.im](https://juejin.im/post/5b54681bf265da0f82023014)
+事务的实现主要是对信道（Channel）的设置，主要的方法有三个：
 
-2、通过生产者消息确认机制（publisher confirm）实现：
+1. channel.txSelect()声明启动事务模式；
+2. channel.txComment()提交事务；
+3. channel.txRollback()回滚事务；
 
-[RabbitMQ系列（四）RabbitMQ事务和Confirm发送方消息确认--深入解读 - 掘金juejin.im](https://juejin.im/post/5b54681bf265da0f82023014)
+```java
+// 创建连接
+ConnectionFactory factory = new ConnectionFactory();
+factory.setUsername(config.UserName);
+factory.setPassword(config.Password);
+factory.setVirtualHost(config.VHost);
+factory.setHost(config.Host);
+factory.setPort(config.Port);	
+Connection conn = factory.newConnection();
+// 创建信道
+Channel channel = conn.createChannel();
+// 声明队列
+channel.queueDeclare(_queueName, true, false, false, null);
+String message = String.format("时间 => %s", new Date().getTime());
+try {
+	channel.txSelect(); // 声明事务
+	// 发送消息
+	channel.basicPublish("", _queueName, MessageProperties.PERSISTENT_TEXT_PLAIN, message.getBytes("UTF-8"));
+	channel.txCommit(); // 提交事务
+} catch (Exception e) {
+	channel.txRollback();
+} finally {
+	channel.close();
+	conn.close();
+}
+```
 
-#### 部署rabbitmq
+##### 通过生产者消息确认机制（publisher confirm）实现：
 
-**单节点环境：**
+Confirm发送方确认模式使用和事务类似，也是通过设置Channel进行发送方确认的。
 
-1、下载rpm包，yum 安装
+**Confirm的三种实现方式：**
 
-2、配置
+方式一：channel.waitForConfirms()普通发送方确认模式；
 
-/etc/rabbitmq/rabbitmq-env.conf 服务环境配置
+```java
+// 创建连接
+ConnectionFactory factory = new ConnectionFactory();
+factory.setUsername(config.UserName);
+factory.setPassword(config.Password);
+factory.setVirtualHost(config.VHost);
+factory.setHost(config.Host);
+factory.setPort(config.Port);
+Connection conn = factory.newConnection();
+// 创建信道
+Channel channel = conn.createChannel();
+// 声明队列
+channel.queueDeclare(config.QueueName, false, false, false, null);
+// 开启发送方确认模式
+channel.confirmSelect();
+String message = String.format("时间 => %s", new Date().getTime());
+channel.basicPublish("", config.QueueName, null, message.getBytes("UTF-8"));
+if (channel.waitForConfirms()) {
+	System.out.println("消息发送成功" );
+}
+```
 
-/etc/rabbitmq/rabbitmq.config 服务配置
+只需要在推送消息之前，channel.confirmSelect()声明开启发送方确认模式，再使用channel.waitForConfirms()等待消息被服务器确认即可。
 
-3、启动
+方式二：channel.waitForConfirmsOrDie()批量确认模式；
 
-rabbitmq-server -detached
+```java
+// 创建连接
+ConnectionFactory factory = new ConnectionFactory();
+factory.setUsername(config.UserName);
+factory.setPassword(config.Password);
+factory.setVirtualHost(config.VHost);
+factory.setHost(config.Host);
+factory.setPort(config.Port);
+Connection conn = factory.newConnection();
+// 创建信道
+Channel channel = conn.createChannel();
+// 声明队列
+channel.queueDeclare(config.QueueName, false, false, false, null);
+// 开启发送方确认模式
+channel.confirmSelect();
+for (int i = 0; i < 10; i++) {
+	String message = String.format("时间 => %s", new Date().getTime());
+	channel.basicPublish("", config.QueueName, null, message.getBytes("UTF-8"));
+}
+channel.waitForConfirmsOrDie(); //直到所有信息都发布，只要有一个未确认就会IOException
+System.out.println("全部执行完成");
+```
 
-4、启动web组件
+channel.waitForConfirmsOrDie()，使用同步方式等所有的消息发送之后才会执行后面代码，只要有一个消息未被确认就会抛出IOException异常。
 
-rabbitmq-plugins enable rabbitmq_management
+方式三：channel.addConfirmListener()异步监听发送方确认模式；
 
-5、创建用户并授予root用户为管理员
+```java
+// 创建连接
+ConnectionFactory factory = new ConnectionFactory();
+factory.setUsername(config.UserName);
+factory.setPassword(config.Password);
+factory.setVirtualHost(config.VHost);
+factory.setHost(config.Host);
+factory.setPort(config.Port);
+Connection conn = factory.newConnection();
+// 创建信道
+Channel channel = conn.createChannel();
+// 声明队列
+channel.queueDeclare(config.QueueName, false, false, false, null);
+// 开启发送方确认模式
+channel.confirmSelect();
+for (int i = 0; i < 10; i++) {
+	String message = String.format("时间 => %s", new Date().getTime());
+	channel.basicPublish("", config.QueueName, null, message.getBytes("UTF-8"));
+}
+//异步监听确认和未确认的消息
+channel.addConfirmListener(new ConfirmListener() {
+	@Override
+	public void handleNack(long deliveryTag, boolean multiple) throws IOException {
+		System.out.println("未确认消息，标识：" + deliveryTag);
+	}
+	@Override
+	public void handleAck(long deliveryTag, boolean multiple) throws IOException {
+		System.out.println(String.format("已确认消息，标识：%d，多个消息：%b", deliveryTag, multiple));
+	}
+});
+```
 
-rabbitmqctl add_user root root
+异步模式执行效率高，不需要等待消息执行完，只需要监听消息即可
 
-rabbitmqctl set_user_tags root administrator
+代码是异步执行的，消息确认有可能是批量确认的，是否批量确认在于返回的multiple的参数，此参数为bool值，如果true表示批量执行了deliveryTag这个值以前的所有消息，如果为false的话表示单条确认。
 
-**集群环境：**
+#### 死信队列
+
+DLX，Dead Letter Exchange 的缩写，又死信邮箱、死信交换机。DLX就是一个普通的交换机，和一般的交换机没有任何区别。 当消息在一个队列中变成死信（dead message）时，通过这个交换机将死信发送到死信队列中（指定好相关参数，rabbitmq会自动发送）
+
+**以下情况会形成死信**：
+
+- 消息被拒绝（basic.reject或basic.nack）并且requeue=false.
+- 消息TTL过期
+- 队列达到最大长度（队列满了，无法再添加数据到mq中）
+
+**应用场景分析：** 在定义业务队列的时候，可以考虑指定一个死信交换机，并绑定一个死信队列，当消息变成死信时，该消息就会被发送到该死信队列上，这样就方便我们查看消息失败的原因了 
+
+**使用死信交换机**
+
+定义业务（普通）队列的时候指定参数：
+
+- x-dead-letter-exchange: 用来设置死信后发送的交换机
+- x-dead-letter-routing-key：用来设置死信的routingKey
+
+```java
+@Bean
+public Queue helloQueue() {
+    //将普通队列绑定到私信交换机上
+    Map<String, Object> args = new HashMap<>(2);
+    args.put(DEAD_LETTER_QUEUE_KEY, deadExchangeName);
+    args.put(DEAD_LETTER_ROUTING_KEY, deadRoutingKey);
+    Queue queue = new Queue(queueName, true, false, false, args);
+    return queue;
+}
+```
+
+### 集群
 
 集群模式下RabbitMQ 默认会将消息冗余到所有节点上吗？
 
@@ -217,7 +409,7 @@ RabbitMQ 内部有各种基础构件，包括队列、交换器、绑定、虚�
 
 所以好的方案就是在集群添加 2 台以上的磁盘节点，这样其中一台发生故障了，集群仍然可以保持运行，且能够在任何时候保存元数据变更。
 
-#### **rabbitmq常见故障**
+### rabbitmq常见故障
 
 - 集群状态异常
 
@@ -236,48 +428,6 @@ RabbitMQ 内部有各种基础构件，包括队列、交换器、绑定、虚�
 1. 按正确顺序重启集群
 2. 保证网络连通正常
 3. 保证磁盘空间、cpu、内存足够
-
-#### **常用命令**
-
-启动rabbit服务：service rabbitmq-server start
-
-停止rabbit服务：service rabbitmq-server stop
-
-后台启动：rabbitmq-server -detached
-
-运行状态：rabbitmqctl status
-
-用户管理
-
-查看所有用户：rabbitmqctl list_users
-
-添加用户：rabbitmqctl add_user username password
-
-删除用户：rabbitmqctl delete_user username
-
-修改密码：rabbitmqctl change_password username newpassword
-
-开启rabbit网页控制台
-
-进入rabbit安装目录：cd /usr/lib/rabbitmq
-
-查看已经安装的插件：rabbitmq-plugins list
-
-开启网页版控制台：rabbitmq-plugins enable rabbitmq_management
-
-重启rabbitmq服务
-
-输入网页访问地址：http://localhost:15672/ 使用默认账号：guest/guest登录
-
-#### **参考：**
-
-[史上最透彻的 RabbitMQ 可靠消息传输实战juejin.im](https://juejin.im/entry/5bbc22135188255c6a0456ef)
-
-[RabbitMQ集群原理与部署objcoding.com](http://objcoding.com/2018/10/19/rabbitmq-cluster/)
-
-[消息队列之 RabbitMQwww.jianshu.com](https://www.jianshu.com/p/79ca08116d57)
-
-[rabbitmq 原理、集群、基本运维操作、常见故障处理cloud.tencent.com](https://cloud.tencent.com/developer/article/1391426)
 
 #### 参考
 
