@@ -180,19 +180,23 @@ ps：重点说下路由转发。生产者Producer在发送消息时，都需要�
 
 内存节点：非持久化的消息一般只保存在内存中，在内存吃紧的时候会被换入到磁盘中，以节省内存空间；
 
-#### 消费者消息确认机制
+消息持久化：
 
-在实际应用中，可能会发生消费者收到Queue中的消息，但没有处理完成就宕机（或出现其他意外）的情况，这种情况下就可能会导致消息丢失。为了避免这种情况发生，我们可以要求消费者在消费完消息后发送一个回执给RabbitMQ，RabbitMQ收到消息回执（Message acknowledgment）后才将该消息从Queue中移除。
+```java
+//deliveryMode=2表示消息持久化
+AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder().deliveryMode(2).build();
+channel.basicPublish("exchangeName","routingKey",properties,msg.getBytes());
+```
 
-如果一个Queue没被任何的Consumer Subscribe（订阅），当有数据到达时，这个数据会被cache，不会被丢弃。当有Consumer时，这个数据会被立即发送到这个Consumer。这个数据被Consumer正确收到时，这个数据就被从Queue中删除。
-
-那么什么是正确收到呢？通过ACK。每个Message都要被acknowledged（确认，ACK）。我们可以显示的在程序中去ACK，也可以自动的ACK。如果有数据没有被ACK，那么RabbitMQ Server会把这个信息发送到下一个Consumer。
+交换机和队列的持久化可以在声明交换机和队列时，将`durable` 参数设置为 `true`。
 
 #### 生产者消息确认机制
 
 如何知道消息有没有正确到达exchange呢？
 
-##### 通过AMQP提供的事务机制实现（存在性能问题）：
+##### Transaction（事务） 模式
+
+通过AMQP提供的事务机制实现（存在性能问题）：
 
 事务的实现主要是对信道（Channel）的设置，主要的方法有三个：
 
@@ -227,11 +231,17 @@ try {
 }
 ```
 
-##### 通过生产者消息确认机制（publisher confirm）实现：
+##### Confirm（确认）模式
+
+通过生产者消息确认机制（publisher confirm）实现：
 
 Confirm发送方确认模式使用和事务类似，也是通过设置Channel进行发送方确认的。
 
-**Confirm的三种实现方式：**
+消息确认模式又可以分为三种（**事务模式和确认模式无法同时开启**）：
+
+- 单条确认模式：发送一条消息，确认一条消息。此种确认模式的效率也不高。
+- 批量确认模式：发送一批消息，然后同时确认。批量发送有一个缺点就是同一批消息一旦有一条消息发送失败，就会收到失败的通知，需要将这一批消息全部重发。
+- 异步确认模式：一边发送一边确认，消息可能被单条确认也可能会被批量确认。
 
 方式一：channel.waitForConfirms()普通发送方确认模式；
 
@@ -323,6 +333,132 @@ channel.addConfirmListener(new ConfirmListener() {
 异步模式执行效率高，不需要等待消息执行完，只需要监听消息即可
 
 代码是异步执行的，消息确认有可能是批量确认的，是否批量确认在于返回的multiple的参数，此参数为bool值，如果true表示批量执行了deliveryTag这个值以前的所有消息，如果为false的话表示单条确认。
+
+#### 消息无法从交换机路由到正确的队列
+
+`RabbitMQ` 中提供了 `2` 种方式来确保消息可以正确路由到队列：开启监听模式或者通过新增备份交换机模式来备份数据。
+
+##### 监听回调
+
+```java
+channel.addReturnListener(new ReturnListener() {
+     @Override
+     public void handleReturn(int replyCode, String replyText, String exchange, String routingKey, AMQP.BasicProperties properties, byte[] body) throws IOException {
+         System.out.println("收到未路由到队列的回调消息：" + new String(body));
+     }
+ });
+//注意这里的第三个参数，mandatory需要设置为true（发送一个错误的路由，即可收到回调）
+channel.basicPublish(EXCHANGE_NAME,"ERROR_ROUTING_KEY",true,null,msg.getBytes());
+```
+
+##### 备份交换机
+
+当原交换机无法正确路由到队列时，则会进入备份交换机，再由备份交换机路由到正确队列。
+
+```java
+ //声明交换机且指定备份交换机
+Map<String,Object> argMap = new HashMap<String,Object>();
+argMap.put("alternate-exchange","TEST_ALTERNATE_EXCHANGE");
+channel.exchangeDeclare(EXCHANGE_NAME, BuiltinExchangeType.DIRECT,false,false,argMap);
+//队列和交换机进行绑定
+channel.queueBind(QUEUE_NAME,EXCHANGE_NAME,ROUTEING_KEY);
+
+//声明备份交换机和备份队列，并绑定（为了防止收不到消息，备份交换机一般建议设置为Fanout类型）
+channel.queueDeclare("BAK_QUEUE", false, false, false, null);
+channel.exchangeDeclare("TEST_ALTERNATE_EXCHANGE", BuiltinExchangeType.TOPIC);
+channel.queueBind("BAK_QUEUE","TEST_ALTERNATE_EXCHANGE","ERROR.#");
+
+String msg = "I'm a bak exchange msg";
+channel.basicPublish(EXCHANGE_NAME,"ERROR.ROUTING_KEY",null,msg.getBytes());
+```
+
+#### 消费者消息确认机制
+
+在实际应用中，可能会发生消费者收到Queue中的消息，但没有处理完成就宕机（或出现其他意外）的情况，这种情况下就可能会导致消息丢失。为了避免这种情况发生，我们可以要求消费者在消费完消息后发送一个回执给RabbitMQ，RabbitMQ收到消息回执（Message acknowledgment）后才将该消息从Queue中移除。
+
+如果一个Queue没被任何的Consumer Subscribe（订阅），当有数据到达时，这个数据会被cache，不会被丢弃。当有Consumer时，这个数据会被立即发送到这个Consumer。这个数据被Consumer正确收到时，这个数据就被从Queue中删除。
+
+那么什么是正确收到呢？通过ACK。每个Message都要被acknowledged（确认，ACK）。我们可以显示的在程序中去ACK，也可以自动的ACK。如果有数据没有被ACK，那么RabbitMQ Server会把这个信息发送到下一个Consumer。
+
+消费者确认：
+
+```java
+// 创建连接
+ConnectionFactory factory = new ConnectionFactory();
+factory.setUsername(config.UserName);
+factory.setPassword(config.Password);
+factory.setVirtualHost(config.VHost);
+factory.setHost(config.Host);
+factory.setPort(config.Port);	
+Connection conn = factory.newConnection();
+// 创建信道
+Channel channel = conn.createChannel();
+//声明队列（默认交换机AMQP default，Direct）
+channel.queueDeclare(QUEUE_NAME, false, false, false, null);
+System.out.println(" 等待接收消息...");
+
+// 创建消费者
+Consumer consumer = new DefaultConsumer(channel) {
+    @Override
+    public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties,
+                               byte[] body) throws IOException {
+        System.out.println("收到消息: " + new String(body, "UTF-8"));
+        Map<String,Object> map = properties.getHeaders();//获取头部消息
+        String ackType = map.get("ackType").toString();
+        if (ackType.equals("ack")){//手动应答
+            channel.basicAck(envelope.getDeliveryTag(),true);
+        }else if(ackType.equals("reject-single")){//拒绝单条消息
+            //拒绝消息。requeue参数表示消息是否重新入队
+            channel.basicReject(envelope.getDeliveryTag(),false);
+            //channel.basicNack(envelope.getDeliveryTag(),false,false);
+        }else if (ackType.equals("reject-multiple")){//拒绝多条消息
+            //拒绝消息。multiple参数表示是否批量拒绝，为true则表示<deliveryTag的消息都被拒绝
+            channel.basicNack(envelope.getDeliveryTag(),true,false);
+        }
+    }
+};
+
+//开始获取消息,第二个参数 autoAck表示是否开启自动应答
+channel.basicConsume(QUEUE_NAME, false, consumer);
+```
+
+生产者代码：
+
+```java
+// 创建连接
+ConnectionFactory factory = new ConnectionFactory();
+factory.setUsername(config.UserName);
+factory.setPassword(config.Password);
+factory.setVirtualHost(config.VHost);
+factory.setHost(config.Host);
+factory.setPort(config.Port);	
+Connection conn = factory.newConnection();
+// 创建消息通道
+Channel channel = conn.createChannel();
+Map<String, Object> headers = new HashMap<String, Object>(1);
+headers.put("ackType", "ack");//请应答
+//headers.put("ackType", "reject-single");//请单条拒绝
+//headers.put("ackType", "reject-multiple");//请多条拒绝
+
+AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
+    .contentEncoding("UTF-8")  // 编码
+    .headers(headers) // 自定义属性
+    .messageId(String.valueOf(UUID.randomUUID()))
+    .build();
+
+String msg = "I'm a ack message";
+//声明队列
+channel.queueDeclare(QUEUE_NAME, false, false, false, null);
+//声明交换机
+channel.exchangeDeclare(EXCHANGE_NAME, BuiltinExchangeType.DIRECT,false);
+//队列和交换机进行绑定
+channel.queueBind(QUEUE_NAME,EXCHANGE_NAME,ROUTEING_KEY);
+// 发送消息
+channel.basicPublish(EXCHANGE_NAME, ROUTEING_KEY, properties, msg.getBytes());
+
+channel.close();
+conn.close();
+```
 
 #### 死信队列
 
