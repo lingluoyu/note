@@ -99,3 +99,57 @@ public void execute(Runnable command) {
 * 判断任务队列是否已经满了，如果没有满，就将任务添加到任务队列中；如果已经满了，就进入到下面的流程。
 * 再判断如果创建一个线程后，线程数是否会超过最大线程数，如果不会超过最大线程数，就创建一个新的线程来执行任务；如果会，则进入到下面的流程。
 * 执行拒绝策略。
+
+#### 注意
+
+Executors提供了5种线程池，对应3中阻塞队列
+
+| 线程池                        | 阻塞队列            |
+| ----------------------------- | ------------------- |
+| FixedThreadPool               | LinkedBlockingQueue |
+| SingleThreadExecutor          | LinkedBlockingQueue |
+| CachedThreadPool              | SynchronousQueue    |
+| SingleThreadScheduledExecutor | DelayedWorkQueue    |
+| ScheduledThreadPool           | DelayedWorkQueue    |
+
+- `LinkedBlockingQueue`：**底层是链表结构、采用先进先出原则，默认容量是 Integer.MAX_VALUE**，几乎可以认为是无界队列（几乎不可能达到这个数）。而**由于 FixedThreadPool 和 SingleThreadExecutor 的线程数是固定的，所以只能用容量无穷大的队列来存任务**。
+
+- `SynchronousQueue`：**容量为 0，不做存储，只做转发**。由于 CachedThreadPool 的最大线程数是 Integer.MAX_VALUE，有任务提交就转发给线程或者创建新线程来执行，并不需要队列存储任务。所以在自定义使用 SynchronousQueue 的线程池应该把最大线程数设置得尽量大，避免任务数大于最大线程数时，没办法把任务放到队列中也没有足够线程来执行任务的情况。
+
+- `DelayedWorkQueue`：**内部用的是堆数据结构，初始容量为 16，跟 hashmap 一样动态扩容，对任务延时长短进行排序**。
+
+**尽量手动创建线程池**
+
+ `FixedThreadPool` 和 `SingleThreadExecutor`：**这两种线程池都是用默认容量的无界队列 LinkedBlockingQueue，当任务处理慢时，队列迅速积压任务并占用大量内存，发生 OOM（内存溢出）**。所以在使用时我们可以根据业务指定队列长度：
+
+```java
+ExecutorService threadPool = new ThreadPoolExecutor(2, 5,
+    1 L, TimeUnit.SECONDS,
+    new LinkedBlockingQueue < > (10),
+    Executors.defaultThreadFactory(),
+    new ThreadPoolExecutor.AbortPolicy());
+```
+
+`CachedThreadPool`：**默认的最大线程是 Integer.MAX_VALUE，当任务贼多时，它就会不断创建线程，而线程执行比较耗时来不及回收。最终也会造成 OOM**，所以应该手动指定最大线程数：
+
+```java
+// CachedThreadPool
+public static ExecutorService newCachedThreadPool() {
+    return new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60 L, TimeUnit.SECONDS, new SynchronousQueue < Runnable > ());
+}
+```
+
+ `ScheduledThreadPool` 和 `ScheduledThreadPoolExecutor`：**首先最大线程数是 Integer.MAX_VALUE，然后阻塞队列是 DelayedWorkQueue，它也是无界队列，最终还是会造成 OOM。**
+
+```java
+// ScheduledThreadPool
+public static ScheduledExecutorService newScheduledThreadPool(int corePoolSize) {
+    return new ScheduledThreadPoolExecutor(corePoolSize);
+}
+
+// ScheduledThreadPoolExecutor
+public ScheduledThreadPoolExecutor(int corePoolSize) {
+    super(corePoolSize, Integer.MAX_VALUE, 0, NANOSECONDS, new DelayedWorkQueue());
+}
+```
+
