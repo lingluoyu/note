@@ -57,3 +57,23 @@ public class VerifyCode {
 }
 ```
 
+### Java高效生成6位短信验证码
+
+##### 低效率方法
+
+```java
+String code = (Math.random() + "").substring(2, 8);
+复制代码
+```
+
+##### 高效率方法
+
+比上面块十倍的方法
+
+```java
+String code = String.valueOf((int)((Math.random() * 9 + 1) * Math.pow(10,5)));
+复制代码
+```
+
+为什么下面的方法速度更快呢？
+ 因为上面的方法用的了字符串截取操作，下面的方法是数值计算。 也可以说是引用类型，和基本数据类型
