@@ -11,7 +11,7 @@ explain select * from user where user_name = 'zhouyu';
 
 ## EXPLAIN 输出格式
 
-![](https://gitee。com/LoopSup/image/raw/master/img/mysql-explain-01。png)
+![](https://gitee。com/LoopSup/image/raw/master/img/mysql-explain-01.png)
 
 expain出来的信息有10列，分别是id、select_type、table、type、possible_keys、key、key_len、ref、rows、Extra
 
