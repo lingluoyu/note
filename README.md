@@ -21,6 +21,7 @@
 		- [反射.md](/Java/基础/反射.md)
 	- [多线程](/Java/多线程)
 		- [AbstractQueuedSynchronizer.md](/Java/多线程/AbstractQueuedSynchronizer.md)
+		- [BlockingQueue.md](/Java/多线程/BlockingQueue.md)
 		- [Thread.md](/Java/多线程/Thread.md)
 		- [ThreadLocal.md](/Java/多线程/ThreadLocal.md)
 		- [ThreadPool.md](/Java/多线程/ThreadPool.md)
