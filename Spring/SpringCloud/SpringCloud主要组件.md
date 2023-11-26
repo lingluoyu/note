@@ -151,6 +151,24 @@ public class OrderMain80 {
 }
 ```
 
+调用接口：
+
+```java
+@RestController
+@Slf4j
+public class OrderController{
+    public static final String PAYMENT_URL = "http://CLOUD-PAYMENT-SERVICE";
+
+    @Resource
+    private RestTemplate restTemplate;
+    @GetMapping("/consumer/payment/create")
+    public CommonResult<Payment> create(Payment payment)
+    {
+        return restTemplate.postForObject(PAYMENT_URL +"/payment/create",payment,CommonResult.class);
+    }
+}
+```
+
 #### Feign
 
 引入依赖：
