@@ -54,6 +54,7 @@
 	- [MySQL深度分页.md](/数据库/MySQL深度分页.md)
 	- [转-MySQL三万字精华总结+面试100问，和面试官扯皮绰绰有余.md](/数据库/转-MySQL三万字精华总结+面试100问，和面试官扯皮绰绰有余.md)
 - [框架](/框架)
+	- [Nacos 原理分析.md](/框架/Nacos 原理分析.md)
 	- [Netty.md](/框架/Netty.md)
 	- [Tomcat原理.md](/框架/Tomcat原理.md)
 	- [定时任务.md](/框架/定时任务.md)
