@@ -335,7 +335,7 @@ private void safeNotifyListener(final String dataId, final String group, final S
                                 notifyWarnTimeout, Thread.currentThread()), notifyWarnTimeout,
                         TimeUnit.MILLISECONDS);
                 listenerWrap.inNotifying = true;
-                // 触发回调，使用 java.util.Properties.load() 方法刷新配置信息
+                // 触发回调
                 listener.receiveConfigInfo(contentTmp);
                 // compare lastContent and content
                 if (listener instanceof AbstractConfigChangeListener) {
@@ -351,41 +351,75 @@ private void safeNotifyListener(final String dataId, final String group, final S
                         "[{}] [notify-ok] dataId={}, group={},tenant={}, md5={}, listener={} ,job run cost={} millis.",
                         envName, dataId, group, tenant, md5, listener, (System.currentTimeMillis() - start));
             } catch (NacosException ex) {
-                LOGGER.error(
-                        "[{}] [notify-error] dataId={}, group={},tenant={},md5={}, listener={} errCode={} errMsg={},stackTrace :{}",
-                        envName, dataId, group, tenant, md5, listener, ex.getErrCode(), ex.getErrMsg(),
-                        getTrace(ex.getStackTrace(), 3));
-            } catch (Throwable t) {
-                LOGGER.error("[{}] [notify-error] dataId={}, group={},tenant={}, md5={}, listener={} tx={}",
-                        envName, dataId, group, tenant, md5, listener, getTrace(t.getStackTrace(), 3));
-            } finally {
-                listenerWrap.inNotifying = false;
-                Thread.currentThread().setContextClassLoader(myClassLoader);
-                if (timeSchedule != null) {
-                    timeSchedule.cancel(true);
-                }
-            }
+            ......
         }
     };
 
-    try {
-        if (null != listener.getExecutor()) {
-            LOGGER.info(
-                    "[{}] [notify-listener] task submitted to user executor, dataId={}, group={},tenant={}, md5={}, listener={} ",
-                    envName, dataId, group, tenant, md5, listener);
-            job.async = true;
-            listener.getExecutor().execute(job);
-        } else {
-            LOGGER.info(
-                    "[{}] [notify-listener] task execute in nacos thread, dataId={}, group={},tenant={}, md5={}, listener={} ",
-                    envName, dataId, group, tenant, md5, listener);
-            job.run();
-        }
-    } catch (Throwable t) {
-        LOGGER.error("[{}] [notify-listener-error] dataId={}, group={},tenant={}, md5={}, listener={} throwable={}",
-                envName, dataId, group, tenant, md5, listener, t.getCause());
-    }
+    ......
 }
+    
+// com.alibaba.nacos.client.config.listener.impl.PropertiesListener
+public abstract class PropertiesListener extends AbstractListener {
+    
+    private static final Logger LOGGER = LogUtils.logger(PropertiesListener.class);
+    
+    @Override
+    public void receiveConfigInfo(String configInfo) {
+        if (StringUtils.isEmpty(configInfo)) {
+            return;
+        }
+        
+        Properties properties = new Properties();
+        try {
+            properties.load(new StringReader(configInfo));
+            // 最终是调用 listener 的抽象方法
+            innerReceive(properties);
+        } catch (IOException e) {
+            LOGGER.error("load properties error：" + configInfo, e);
+        }
+        
+    }
+    
+    /**
+     * properties type for receiver.
+     *
+     * @param properties properties
+     */
+    public abstract void innerReceive(Properties properties);
+    
+}
+// 通过NacosContextRefresher类的registerNacosListener方法来去实现innerReceive这个抽象方法
+// com.alibaba.cloud.nacos.refresh.NacosContextRefresher#registerNacosListener
+private void registerNacosListener(final String groupKey, final String dataKey) {
+		String key = NacosPropertySourceRepository.getMapKey(dataKey, groupKey);
+		Listener listener = listenerMap.computeIfAbsent(key,
+				lst -> new AbstractSharedListener() {
+					@Override
+					public void innerReceive(String dataId, String group,
+							String configInfo) {
+						refreshCountIncrement();
+						nacosRefreshHistory.addRefreshRecord(dataId, group, configInfo);
+                        // 发布配置刷新事件，实现配置刷新
+						applicationContext.publishEvent(
+								new RefreshEvent(this, null, "Refresh Nacos config"));
+						if (log.isDebugEnabled()) {
+							log.debug(String.format(
+									"Refresh Nacos config group=%s,dataId=%s,configInfo=%s",
+									group, dataId, configInfo));
+						}
+					}
+				});
+		try {
+			configService.addListener(dataKey, groupKey, listener);
+			log.info("[Nacos Config] Listening config: dataId={}, group={}", dataKey,
+					groupKey);
+		}
+		catch (NacosException e) {
+			log.warn(String.format(
+					"register fail for nacos listener ,dataId=[%s],group=[%s]", dataKey,
+					groupKey), e);
+		}
+	}
 ```
 
 使用 spring-cloud 刷新配置信息
