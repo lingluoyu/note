@@ -42,6 +42,11 @@ static ConfigService createConfigService(
     }
     return service;
 }
+
+```
+NacosFactory 创建 ConfigService
+
+```java
 // NacosFactory
 public static ConfigService createConfigService(Properties properties) throws NacosException {
     return ConfigFactory.createConfigService(properties);
@@ -79,7 +84,7 @@ public ClientWorker(final ConfigFilterChainManager configFilterChainManager, Ser
     this.configFilterChainManager = configFilterChainManager;
 
     init(properties);
-	// 创建 ConfigTransportClient，与配置中心通信，底层为 HttpCLient
+	// 创建 ConfigTransportClient，与配置中心通信，底层为 HttpCLient，用于鉴权
     agent = new ConfigRpcTransportClient(properties, serverListManager);
     int count = ThreadUtils.getSuitableThreadCount(THREAD_MULTIPLE);
     // 启动定时的 worker 线程，从配置中心拉取配置信息
