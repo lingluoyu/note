@@ -859,6 +859,7 @@ public List<Instance> selectInstances(String serviceName, String groupName, List
     if (subscribe) {// 订阅逻辑
         serviceInfo = serviceInfoHolder.getServiceInfo(serviceName, groupName, clusterString);
         if (null == serviceInfo || !clientProxy.isSubscribed(serviceName, groupName, clusterString)) {
+            // 订阅注册服务列表
             serviceInfo = clientProxy.subscribe(serviceName, groupName, clusterString);
         }
     } else {
@@ -867,15 +868,26 @@ public List<Instance> selectInstances(String serviceName, String groupName, List
     }
     return selectInstances(serviceInfo, healthy);
 }
-// com.alibaba.nacos.client.naming.remote.gprc.NamingGrpcClientProxy#queryInstancesOfService
+// com.alibaba.nacos.client.naming.remote.gprc.NamingGrpcClientProxy#subscribe
 @Override
-public ServiceInfo queryInstancesOfService(String serviceName, String groupName, String clusters,
-        boolean healthyOnly) throws NacosException {
-    ServiceQueryRequest request = new ServiceQueryRequest(namespaceId, serviceName, groupName);
-    request.setCluster(clusters);
-    request.setHealthyOnly(healthyOnly);
-    QueryServiceResponse response = requestToServer(request, QueryServiceResponse.class);
+public ServiceInfo subscribe(String serviceName, String groupName, String clusters) throws NacosException {
+    if (NAMING_LOGGER.isDebugEnabled()) {
+        NAMING_LOGGER.debug("[GRPC-SUBSCRIBE] service:{}, group:{}, cluster:{} ", serviceName, groupName, clusters);
+    }
+    // 将重试信息存入缓存，通过定时任务重试
+    redoService.cacheSubscriberForRedo(serviceName, groupName, clusters);
+    // 订阅
+    return doSubscribe(serviceName, groupName, clusters);
+}
+
+public ServiceInfo doSubscribe(String serviceName, String groupName, String clusters) throws NacosException {
+    SubscribeServiceRequest request = new SubscribeServiceRequest(namespaceId, groupName, serviceName, clusters,
+                                                                  true);
+    // 获取服务列表信息
+    SubscribeServiceResponse response = requestToServer(request, SubscribeServiceResponse.class);
+    redoService.subscriberRegistered(serviceName, groupName, clusters);
     return response.getServiceInfo();
 }
+
 ```
 
